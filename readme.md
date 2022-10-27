@@ -37,6 +37,7 @@ let staticOptions = {
 		'.png',
 		'.jpg',
 		'.jpeg',
+		'.svg'
 	],
 	// the default extension to server if path has no extension
 	defaultExtension: '.html',
