@@ -10,13 +10,13 @@
 Before diving in, you should read about [LiveDirectory](https://github.com/kartikk221/live-directory) by [Kartik](https://github.com/kartikk221) to see why you really want to use it!
 
 This module does two things:
+
 1. It extends LiveDirectory to be able to take an array of directory paths, because static files can be in multiple directories after all.
 2. It borrows from modules like [serve-static](https://www.npmjs.com/package/serve-static) to build the rest of the logic needed to serve static files via LiveDirectory.
 
 Well tested with [hyper-express](https://www.npmjs.com/package/hyper-express) but should in theory work with [express](https://www.npmjs.com/package/express) too. Let me know if it doesn't.
 
 ## How to use
-
 
 ```javascript
 const HyperExpress = require('hyper-express');
@@ -33,7 +33,7 @@ let staticOptions = {
 		'.css',
 		'.js',
 		'.json',
-        '.gif',
+		'.gif',
 		'.png',
 		'.jpg',
 		'.jpeg',
@@ -43,10 +43,20 @@ let staticOptions = {
 	// this allows any other methods other than GET to pass through without attempting to serve static files
 	// static files are only served via GET anyway
 	fallThrough: true,
+	// cache directory for templates
+	// also useful for css minification
+	cacheDir: path.resolve(module.parent.path, '.cache'),
+	// used to determine what static content optimizations we want
+	optimize: {
+		css: true,
+		removeUnusedCss: true,
+	},
 };
 
 // set it before any routes
-webserver.use(liveDirectoryStatic(['path/to/dir1', 'path/to/dir2'], staticOptions));
+webserver.use(
+	liveDirectoryStatic(['path/to/dir1', 'path/to/dir2'], staticOptions)
+);
 
 // Create GET route to serve 'Hello World'
 webserver.get('/', (request, response) => {
@@ -59,7 +69,6 @@ webserver
 	.then((socket) => console.log('Webserver started on port 80'))
 	.catch((error) => console.log('Failed to start webserver on port 80'));
 ```
-
 
 # The magic of using [live-directory-static](https://www.npmjs.com/package/live-directory-static) & [live-directory-views](https://www.npmjs.com/package/live-directory-views)
 
@@ -100,8 +109,7 @@ const liveDirectoryStatic = require('live-directory-static');
 // let us cache somewhere off the app folder
 // if not set, default cacheDir is path.resolve(module.parent.path, '.cache')
 // if directory is missing, an attempt to create one is made
-const templateCacheDir = path.join(os.homedir(),  'templates-cache');
-
+const templateCacheDir = path.join(os.homedir(), 'templates-cache');
 
 let staticOptions = {
 	//...other options
@@ -109,7 +117,9 @@ let staticOptions = {
 };
 
 //static files middleware
-webserver.use(liveDirectoryStatic(['path/to/dir1', 'path/to/dir2'], staticOptions));
+webserver.use(
+	liveDirectoryStatic(['path/to/dir1', 'path/to/dir2'], staticOptions)
+);
 
 //
 let viewOptions = {
@@ -119,7 +129,6 @@ let viewOptions = {
 
 // views middleware
 webserver.use(liveDirectoryViews(viewOptions));
-
 
 // Render the template using .render() method
 webserver.get('/', (request, response) => {
@@ -134,4 +143,3 @@ webserver
 	.then((socket) => console.log('Webserver started on port 80'))
 	.catch((error) => console.log('Failed to start webserver on port 80'));
 ```
-
