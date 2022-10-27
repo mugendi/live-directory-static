@@ -9,6 +9,8 @@ const LiveDirectory = require('./lib/liveDirectory'),
 	path = require('path'),
 	fs = require('fs');
 
+const optimize_css = require('./lib/optimize-css');
+
 module.exports = static;
 
 function static(paths, opts) {
@@ -20,33 +22,23 @@ function static(paths, opts) {
 				'.css',
 				'.js',
 				'.json',
-                '.gif',
+				'.gif',
 				'.png',
 				'.jpg',
 				'.jpeg',
 				'.ico',
-				'.svg'
+				'.svg',
 			],
 			defaultExtension: '.html',
 			fallThrough: true,
 			cacheDir: path.resolve(module.parent.path, '.cache'),
+			optimize: {
+				css: true,
+				removeUnusedCss: true,
+			},
 		},
 		opts
 	);
-
-
-	// ensure cache dir
-	if(
-		// has cacheDir
-		opts.cacheDir &&
-		// parent directory exists
-		fs.existsSync(path.dirname(opts.cacheDir)) &&
-		// cache dir is missing
-		!fs.existsSync(opts.cacheDir)
-	){
-		fs.mkdirSync(opts.cacheDir)
-	}
-
 
 	// Create a LiveDirectory instance to virtualize directory with our assets
 	const LiveAssets = new LiveDirectory({
@@ -60,8 +52,6 @@ function static(paths, opts) {
 	});
 
 	return (request, response, next) => {
-		// console.log(request.method);
-
 		if (request.method !== 'GET' && request.method !== 'HEAD') {
 			if (opts.fallThrough) {
 				return next();
@@ -87,7 +77,31 @@ function static(paths, opts) {
 		// Return a 404 if no asset/file exists on the derived path
 		if (file === undefined) return next();
 
-		// Set appropriate mime-type and serve file buffer as response body
-		return response.type(file.extension).send(file.buffer);
+		let staticFileData = file.buffer;
+
+		// optimize css
+		if (
+			// if css file
+			file.extension == 'css' &&
+			// and we the optimize css flag is true
+			opts.optimize.css
+		) {
+			// optimize css
+			optimize_css(file, request.headers.referer, opts)
+				.then((css) => {
+					return response.type(file.extension).send(css);
+				})
+				.catch(console.error);
+
+			// load file if exists
+		} else {
+			// Set appropriate mime-type and serve file buffer as response body
+			return response.type(file.extension).send(staticFileData);
+		}
+
+		// optimize js Do we want to???
+		// too many gotchas with js??
 	};
 }
+
+// memoize purge css method

@@ -6,12 +6,23 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["hyper-express","live-directory","static","files","middleware","serve"],
+  "keywords": [
+    "hyper-express",
+    "live-directory",
+    "static",
+    "files",
+    "middleware",
+    "serve"
+  ],
   "author": "Anthony Mugendi <ngurumugz@gmail.com>",
   "license": "MIT",
   "dependencies": {
     "chokidar": "^3.5.3",
-    "etag": "^1.8.1"
+    "clean-css": "^5.3.1",
+    "etag": "^1.8.1",
+    "lodash": "^4.17.21",
+    "purgecss": "^5.0.0",
+    "p-memoize": "^4.0.4"
   },
   "directories": {
     "lib": "lib"
