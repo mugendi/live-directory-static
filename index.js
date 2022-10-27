@@ -6,6 +6,7 @@
  */
 
 const LiveDirectory = require('./lib/liveDirectory'),
+	expand = require('brace-expansion'),
 	path = require('path'),
 	fs = require('fs');
 
@@ -13,7 +14,23 @@ const optimize_css = require('./lib/optimize-css');
 
 module.exports = static;
 
+function arrify(v) {
+	if (v === undefined) return [];
+	return Array.isArray(v) ? v : [v];
+}
+
+function is_object(value) {
+	if (!value) return false;
+	return value.toString() === '[object Object]';
+}
+
 function static(paths, opts) {
+	if (!is_object(opts)) throw new Error(`Options must be an object.`);
+
+	paths = arrify(paths);
+	// remove training slashes
+	paths = paths.map((p) => p.replace(/\/+$/, ''));
+
 	opts = Object.assign(
 		{
 			allowedExtensions: [
@@ -21,13 +38,7 @@ function static(paths, opts) {
 				'.htm',
 				'.css',
 				'.js',
-				'.json',
-				'.gif',
-				'.png',
-				'.jpg',
-				'.jpeg',
-				'.ico',
-				'.svg',
+				'.json'
 			],
 			defaultExtension: '.html',
 			fallThrough: true,
@@ -74,29 +85,51 @@ function static(paths, opts) {
 
 		const file = LiveAssets.get(filePath);
 
-		// Return a 404 if no asset/file exists on the derived path
-		if (file === undefined) return next();
+		if (file) {
+			let staticFileData = file.buffer;
 
-		let staticFileData = file.buffer;
-
-		// optimize css
-		if (
-			// if css file
-			file.extension == 'css' &&
-			// and we the optimize css flag is true
-			opts.optimize.css
-		) {
 			// optimize css
-			optimize_css(file, request.headers.referer, opts)
-				.then((css) => {
-					return response.type(file.extension).send(css);
-				})
-				.catch(console.error);
+			if (
+				// if css file
+				file.extension == 'css' &&
+				// and we the optimize css flag is true
+				opts.optimize.css
+			) {
+				// optimize css
+				optimize_css(file, request.headers.referer, opts)
+					.then((css) => {
+						return response.type(file.extension).send(css);
+					})
+					.catch(console.error);
 
-			// load file if exists
+				// load file if exists
+			} else {
+				// Set appropriate mime-type and serve file buffer as response body
+				return response.type(file.extension).send(staticFileData);
+			}
 		} else {
-			// Set appropriate mime-type and serve file buffer as response body
-			return response.type(file.extension).send(staticFileData);
+			let filePath = find_file(paths, request.path, opts);
+
+			// if we found a file
+			if (filePath) {
+				// ths could be a large file,
+				//  we cannot risk loading to memory so we stream it
+				// Create a readable stream for the file
+				const readable = fs.createReadStream(filePath);
+
+				// Handle any errors from the readable
+				readable.on('error', (error) => {
+					return next(error);
+				});
+
+				// Easily stream the video data to receiver
+				return response
+					.type(path.extname(filePath) || 'txt')
+					.stream(readable);
+			}
+
+			// file missing!
+			return next(404);
 		}
 
 		// optimize js Do we want to???
@@ -104,4 +137,17 @@ function static(paths, opts) {
 	};
 }
 
-// memoize purge css method
+function find_file(paths, requestPath, opts) {
+	// console.log(requestPath);
+	// add default extension if missing
+	if (!path.extname(requestPath)) {
+		requestPath = requestPath + opts.defaultExtension;
+	}
+	// generate possible paths
+	let possiblePaths = expand(`{${paths.join(',')}}${requestPath}`);
+	// find which of these paths exist
+	let existingPaths = possiblePaths.filter(fs.existsSync);
+
+	if (existingPaths.length) return existingPaths[0];
+	return null;
+}
