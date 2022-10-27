@@ -1,12 +1,12 @@
 {
   "name": "live-directory-static",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Use LiveDirectory to create a static file middleware that is super-fast for use with hyper-express.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["hyper-express","live-directory","static","files","middleware","serve"],
   "author": "Anthony Mugendi <ngurumugz@gmail.com>",
   "license": "MIT",
   "dependencies": {
