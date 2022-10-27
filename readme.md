@@ -13,7 +13,7 @@ This module does two things:
 1. It extends LiveDirectory to be able to take an array of directory paths, because static files can be in multiple directories after all.
 2. It borrows from modules like [serve-static](https://www.npmjs.com/package/serve-static) to build the rest of the logic needed to serve static files via LiveDirectory.
 
-Well tested with [hyper-express](https://www.npmjs.com/package/hyper-express) but should in theory work with [expres](https://www.npmjs.com/package/expres) too. Let me know if it doesn't.
+Well tested with [hyper-express](https://www.npmjs.com/package/hyper-express) but should in theory work with [express](https://www.npmjs.com/package/express) too. Let me know if it doesn't.
 
 ## How to use
 
