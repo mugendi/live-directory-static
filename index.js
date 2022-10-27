@@ -6,7 +6,8 @@
  */
 
 const LiveDirectory = require('./lib/liveDirectory'),
-	path = require('path');
+	path = require('path'),
+	fs = require('fs');
 
 module.exports = static;
 
@@ -28,9 +29,24 @@ function static(paths, opts) {
 			],
 			defaultExtension: '.html',
 			fallThrough: true,
+			cacheDir: path.resolve(module.parent.path, '.cache'),
 		},
 		opts
 	);
+
+
+	// ensure cache dir
+	if(
+		// has cacheDir
+		opts.cacheDir &&
+		// parent directory exists
+		fs.existsSync(path.dirname(opts.cacheDir)) &&
+		// cache dir is missing
+		!fs.existsSync(opts.cacheDir)
+	){
+		fs.mkdirSync(opts.cacheDir)
+	}
+
 
 	// Create a LiveDirectory instance to virtualize directory with our assets
 	const LiveAssets = new LiveDirectory({
