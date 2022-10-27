@@ -26,19 +26,10 @@ const liveDirectoryStatic = require('live-directory-static');
 // options you can add to your static files middleware
 // example below includes all the default values
 let staticOptions = {
-	// extensions of files we expect to serve
-	allowedExtensions: [
-		'.html',
-		'.htm',
-		'.css',
-		'.js',
-		'.json',
-		'.gif',
-		'.png',
-		'.jpg',
-		'.jpeg',
-		'.svg'
-	],
+	// extensions of files we expect to serve and cache via liveDirectory
+	// ideally, other file types will also be served but as they can be too large
+	// they are never cached and served via hyper-express's response.stream(readable);
+	allowedExtensions: ['.html', '.htm', '.css', '.js', '.json'],
 	// the default extension to server if path has no extension
 	defaultExtension: '.html',
 	// this allows any other methods other than GET to pass through without attempting to serve static files
