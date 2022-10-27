@@ -23,7 +23,8 @@ function static(paths, opts) {
 				'.png',
 				'.jpg',
 				'.jpeg',
-				'.ico'
+				'.ico',
+				'.svg'
 			],
 			defaultExtension: '.html',
 			fallThrough: true,
