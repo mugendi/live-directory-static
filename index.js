@@ -9,7 +9,7 @@ const path = require('path'),
 	fs = require('fs'),
 	{ md5 } = require('./lib/utils'),
 	{ wrap } = require('./lib/cache')(),
-	optimizedLiveDir = require('/home/mugz/projects/node/my-modules/optimized-live-directory');
+	optimizedLiveDir = require('optimized-live-directory');
 
 const optimize_css = require('./lib/optimize-css');
 
