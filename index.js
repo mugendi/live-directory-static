@@ -42,7 +42,7 @@ function static(assetDirs, opts) {
 				css: true,
 				removeUnusedCss: true,
 			},
-			
+
 			// This option helps us control how much memory we let LiveDirectory Gobble up.
 			// If you have 1 million static file, you don't want all of them on memory
 			memory: {
@@ -120,7 +120,8 @@ function static(assetDirs, opts) {
 		}
 
 		// Let OptiDir get our files
-		let resp = optiDir.fetch(request);
+		let resp = optiDir.fetch(request),
+			env = process.env.NODE_ENV;
 
 		// if successful, then we have found our file...
 		if (resp.status == 'Successful') {
@@ -135,16 +136,15 @@ function static(assetDirs, opts) {
 				// we can further optimize css
 				if (resp.extension == 'css') {
 					try {
-
-
 						// console.log(fs.statSync(resp.path).mtimeMs);
 
 						// optimize only once per page per css
-						let cacheKey = md5([
-							request.headers.referer,
-							resp.path,
-							fs.statSync(resp.path).mtimeMs
-						]);
+						let cacheKey = md5({
+							referer: request.headers.referer,
+							path: resp.path,
+							modified: fs.statSync(resp.path).mtimeMs,
+							devHash: env == 'development' ? Date.now() : '0',
+						});
 
 						// wrap to cache
 						wrap(cacheKey, async function () {
@@ -186,7 +186,6 @@ function static(assetDirs, opts) {
 				} else {
 					response.type(resp.extension).send(resp.content);
 				}
-
 			}
 		}
 		// We couldn't find file so we fall through...
@@ -196,4 +195,3 @@ function static(assetDirs, opts) {
 		}
 	};
 }
-
