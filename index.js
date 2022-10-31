@@ -135,11 +135,18 @@ function static(assetDirs, opts) {
 				// we can further optimize css
 				if (resp.extension == 'css') {
 					try {
+
+
+						// console.log(fs.statSync(resp.path).mtimeMs);
+
 						// optimize only once per page per css
 						let cacheKey = md5([
 							request.headers.referer,
 							resp.path,
+							fs.statSync(resp.path).mtimeMs
 						]);
+
+						console.log(cacheKey);
 
 						// wrap to cache
 						wrap(cacheKey, async function () {
