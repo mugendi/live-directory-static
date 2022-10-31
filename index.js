@@ -146,8 +146,6 @@ function static(assetDirs, opts) {
 							fs.statSync(resp.path).mtimeMs
 						]);
 
-						console.log(cacheKey);
-
 						// wrap to cache
 						wrap(cacheKey, async function () {
 							try {
