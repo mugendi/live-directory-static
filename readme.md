@@ -26,10 +26,6 @@ const liveDirectoryStatic = require('live-directory-static');
 // options you can add to your static files middleware
 // example below includes all the default values
 let staticOptions = {
-	// extensions of files we expect to serve and cache via liveDirectory
-	// ideally, other file types will also be served but as they can be too large
-	// they are never cached and served via hyper-express's response.stream(readable);
-	allowedExtensions: ['.html', '.htm', '.css', '.js', '.json'],
 	// the default extension to server if path has no extension
 	defaultExtension: '.html',
 	// this allows any other methods other than GET to pass through without attempting to serve static files
@@ -42,6 +38,64 @@ let staticOptions = {
 	optimize: {
 		css: true,
 		removeUnusedCss: true,
+	},
+
+	// The next options are used by optimized-live-directory
+	// Which is used by this module to keep files highly optimized
+	// This option helps us control how much memory we let LiveDirectory Gobble up.
+	// If you have 1 million static file, you don't want all of them on memory
+	memory: {
+		// maximum memory we will allow live directory to use
+		maxUsed: '500mb',
+		// maximum size of file we load into live directory
+		bufferLimit: '500kb',
+	},
+
+	// Filters help to determine which files we accept/whitelist for Live Directory
+	filter: {
+		// because we handle css optimizations via purgecss, we don't optimize here
+		extensions: [
+			'.js',
+			// '.css',
+			'.png',
+			'.jpg',
+			'.jpeg',
+			'.gif',
+			'.svg',
+			'.webp',
+			'.html',
+		],
+	},
+
+	// Details on how various static files are minified
+	minify: {
+		// minify html
+		html: {
+			collapseWhitespace: true,
+			conservativeCollapse: true,
+			continueOnParseError: false,
+			keepClosingSlash: true,
+			removeComments: true,
+			removeScriptTypeAttributes: true,
+			sortAttributes: true,
+			sortClassName: true,
+		},
+		// minify css with default options
+		css: {},
+		// js is null because we do not minify javascript by default.
+		js: null,
+		// optimize svg using defaults
+		svg: {},
+		// optimize png
+		png: {
+			quality: [0.6, 0.8],
+		},
+		// optimize jpg
+		jpg: {},
+		// optimize gif
+		gif: {
+			optimizationLevel: 3,
+		},
 	},
 };
 

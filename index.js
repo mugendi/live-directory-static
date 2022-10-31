@@ -5,10 +5,11 @@
  * https://opensource.org/licenses/MIT
  */
 
-const LiveDirectory = require('./lib/liveDirectory'),
-	expand = require('brace-expansion'),
-	path = require('path'),
-	fs = require('fs');
+const path = require('path'),
+	fs = require('fs'),
+	{ md5 } = require('./lib/utils'),
+	{ wrap } = require('./lib/cache')(),
+	optimizedLiveDir = require('/home/mugz/projects/node/my-modules/optimized-live-directory');
 
 const optimize_css = require('./lib/optimize-css');
 
@@ -24,43 +25,85 @@ function is_object(value) {
 	return value.toString() === '[object Object]';
 }
 
-function static(paths, opts) {
+function static(assetDirs, opts) {
 	if (!is_object(opts)) throw new Error(`Options must be an object.`);
 
-	paths = arrify(paths);
+	assetDirs = arrify(assetDirs);
 	// remove training slashes
-	paths = paths.map((p) => p.replace(/\/+$/, ''));
+	assetDirs = assetDirs.map((p) => p.replace(/\/+$/, ''));
+
+	// console.log(assetDirs);
 
 	opts = Object.assign(
 		{
-			allowedExtensions: [
-				'.html',
-				'.htm',
-				'.css',
-				'.js',
-				'.json'
-			],
-			defaultExtension: '.html',
 			fallThrough: true,
 			cacheDir: path.resolve(module.parent.path, '.cache'),
 			optimize: {
 				css: true,
 				removeUnusedCss: true,
 			},
+			
+			// This option helps us control how much memory we let LiveDirectory Gobble up.
+			// If you have 1 million static file, you don't want all of them on memory
+			memory: {
+				// maximum memory we will allow live directory to use
+				maxUsed: '500mb',
+				// maximum size of file we load into live directory
+				bufferLimit: '500kb',
+			},
+
+			// Filters help to determine which files we accept/whitelist for Live Directory
+
+			filter: {
+				extensions: [
+					'.js',
+					'.png',
+					'.jpg',
+					'.jpeg',
+					'.gif',
+					'.svg',
+					'.webp',
+					'.html',
+				],
+			},
+
+			// Details on how various static files are minified
+			minify: {
+				// minify html
+				html: {
+					collapseWhitespace: true,
+					conservativeCollapse: true,
+					continueOnParseError: false,
+					keepClosingSlash: true,
+					removeComments: true,
+					removeScriptTypeAttributes: true,
+					sortAttributes: true,
+					sortClassName: true,
+				},
+				// minify css with default options
+				css: {},
+				// js is null because we do not minify javascript by default.
+				js: null,
+				// optimize svg using defaults
+				svg: {},
+				// optimize png
+				png: {
+					quality: [0.6, 0.8],
+				},
+				// optimize jpg
+				jpg: {},
+				// optimize gif
+				gif: {
+					optimizationLevel: 3,
+				},
+			},
 		},
 		opts
 	);
 
-	// Create a LiveDirectory instance to virtualize directory with our assets
-	const LiveAssets = new LiveDirectory({
-		paths, // We want to provide the system path to the folder. Avoid using relative paths.
-		keep: {
-			extensions: opts.allowedExtensions, // We only want to serve files with these extensions
-		},
-		ignore: (path) => {
-			return path.startsWith('.'); // We want to ignore dotfiles for safety
-		},
-	});
+	// this will load all the files within the directories
+	// you can pass options to determine how it works
+	let optiDir = new optimizedLiveDir(assetDirs, opts);
 
 	return (request, response, next) => {
 		if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -76,78 +119,76 @@ function static(paths, opts) {
 			return;
 		}
 
-		let filePath = request.path;
+		// Let OptiDir get our files
+		let resp = optiDir.fetch(request);
 
-		// add default extension if need be
-		if ('' == path.extname(filePath) && opts.defaultExtension) {
-			filePath += opts.defaultExtension;
-		}
+		// if successful, then we have found our file...
+		if (resp.status == 'Successful') {
+			//  resp.optimization
 
-		const file = LiveAssets.get(filePath);
-
-		if (file) {
-			let staticFileData = file.buffer;
-
-			// optimize css
-			if (
-				// if css file
-				file.extension == 'css' &&
-				// and we the optimize css flag is true
-				opts.optimize.css
-			) {
-				// optimize css
-				optimize_css(file, request.headers.referer, opts)
-					.then((css) => {
-						return response.type(file.extension).send(css);
-					})
-					.catch(console.error);
-
-				// load file if exists
-			} else {
-				// Set appropriate mime-type and serve file buffer as response body
-				return response.type(file.extension).send(staticFileData);
+			// inspect if mode is fileStream, then stream
+			if (resp.mode == 'fileStream') {
+				response.type(resp.extension).stream(resp.stream);
 			}
-		} else {
-			let filePath = find_file(paths, request.path, opts);
+			// if buffer then send
+			else if (resp.mode == 'fileBuffer') {
+				// we can further optimize css
+				if (resp.extension == 'css') {
+					try {
+						// optimize only once per page per css
+						let cacheKey = md5([
+							request.headers.referer,
+							resp.path,
+						]);
 
-			// if we found a file
-			if (filePath) {
-				// ths could be a large file,
-				//  we cannot risk loading to memory so we stream it
-				// Create a readable stream for the file
-				const readable = fs.createReadStream(filePath);
+						// wrap to cache
+						wrap(cacheKey, async function () {
+							try {
+								// console.log(`Optimizing ${resp.name}...`);
+								// run the optimize function
+								return await optimize_css(
+									resp,
+									request.headers.referer,
+									opts
+								);
+							} catch (error) {
+								throw error;
+							}
+						})
+							.then((cssBuffer) => {
+								// console.log(resp.name, Buffer.byteLength(cssBuffer));
+								// if we have purged css
+								if (cssBuffer) {
+									response
+										.type(resp.extension)
+										.send(cssBuffer);
+								} else {
+									response
+										.type(resp.extension)
+										.send(resp.content);
+								}
 
-				// Handle any errors from the readable
-				readable.on('error', (error) => {
-					return next(error);
-				});
+								return cssBuffer;
+							})
+							.catch((error) => {
+								throw error;
+							});
+					} catch (error) {
+						// console.error(error);
+						// just render un-optimized
+						response.type(resp.extension).send(resp.content);
+					}
+				} else {
+					response.type(resp.extension).send(resp.content);
+				}
 
-				// Easily stream the video data to receiver
-				return response
-					.type(path.extname(filePath) || 'txt')
-					.stream(readable);
 			}
-
-			// file missing!
-			return next(404);
 		}
-
-		// optimize js Do we want to???
-		// too many gotchas with js??
+		// We couldn't find file so we fall through...
+		else {
+			// send 404
+			return next();
+		}
 	};
 }
 
-function find_file(paths, requestPath, opts) {
-	// console.log(requestPath);
-	// add default extension if missing
-	if (!path.extname(requestPath)) {
-		requestPath = requestPath + opts.defaultExtension;
-	}
-	// generate possible paths
-	let possiblePaths = expand(`{${paths.join(',')}}${requestPath}`);
-	// find which of these paths exist
-	let existingPaths = possiblePaths.filter(fs.existsSync);
-
-	if (existingPaths.length) return existingPaths[0];
-	return null;
-}

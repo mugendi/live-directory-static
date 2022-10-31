@@ -17,12 +17,12 @@
   "author": "Anthony Mugendi <ngurumugz@gmail.com>",
   "license": "MIT",
   "dependencies": {
-    "brace-expansion": "^2.0.1",
-    "chokidar": "^3.5.3",
     "clean-css": "^5.3.1",
     "etag": "^1.8.1",
+    "hyper-express-route-path": "^1.0.1",
     "lodash": "^4.17.21",
-    "p-memoize": "^4.0.4",
+    "lru-cache": "^7.14.0",
+    "optimized-live-directory": "^1.0.2",
     "purgecss": "^5.0.0"
   },
   "directories": {
