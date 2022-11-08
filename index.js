@@ -57,6 +57,7 @@ function static(assetDirs, opts) {
 			filter: {
 				extensions: [
 					'.js',
+					'.css',
 					'.png',
 					'.jpg',
 					'.jpeg',
