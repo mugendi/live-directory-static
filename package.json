@@ -22,7 +22,8 @@
     "hyper-express-route-path": "^1.0.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.14.0",
-    "optimized-live-directory": "^1.0.2"
+    "optimized-live-directory": "^1.0.2",
+    "purgecss": "^5.0.0"
   },
   "directories": {
     "lib": "lib"
