@@ -1,6 +1,6 @@
 {
   "name": "live-directory-static",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Use LiveDirectory to create a static file middleware that is super-fast for use with hyper-express.",
   "main": "index.js",
   "scripts": {
